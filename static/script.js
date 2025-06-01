@@ -88,10 +88,13 @@ analyzeBtn.addEventListener("click", async () => {
   formData.append("file", file);
 
   try {
-    const response = await fetch("http://127.0.0.1:8000/analyze", {
-      method: "POST",
-      body: formData,
-    });
+    const response = await fetch(
+      "https://tkti_final-project.railway.app/analyze",
+      {
+        method: "POST",
+        body: formData,
+      }
+    );
 
     if (!response.ok) {
       throw new Error(`HTTP error! Status: ${response.status}`);

@@ -4,7 +4,6 @@ from flask import Flask, request, jsonify
 from flask_cors import CORS
 from PyPDF2 import PdfReader
 import io
-import requests
 
 app = Flask(__name__)
 CORS(app)
@@ -23,10 +22,19 @@ def summarize_with_huggingface(text):
 
 @app.route('/analyze', methods=['POST'])
 def analyze_pdf():
-    data = request.get_json()
-    url = data.get('file_url')
-    response = requests.get(url)
-    reader = PdfReader(io.BytesIO(response.content))
+    if 'file' not in request.files:
+        return jsonify({'error': 'Tidak ada file yang di-upload'}), 400
+    
+    file = request.files['file']
+    
+    if file.filename == '':
+        return jsonify({'error': 'Nama file kosong'}), 400
+    
+    # Baca PDF dari file stream langsung
+    try:
+        reader = PdfReader(file.stream)
+    except Exception as e:
+        return jsonify({'error': f'Gagal membaca file PDF: {str(e)}'}), 400
 
     text = ''
     for page in reader.pages:
@@ -44,4 +52,5 @@ def home():
     return "🚀 Hugging Face API PDF Summarizer is running"
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    port = int(os.environ.get("PORT", 8080))
+    app.run(host='0.0.0.0', port=port)
