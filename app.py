@@ -48,7 +48,10 @@ def analyze_pdf():
 # Route untuk menampilkan halaman frontend
 @app.route('/')
 def home():
+    print("CWD:", os.getcwd())
+    print("Templates folder content:", os.listdir('templates'))
     return render_template('index.html')
+
 
 # Route untuk melayani file statis (js, css)
 @app.route('/static/<path:path>')
