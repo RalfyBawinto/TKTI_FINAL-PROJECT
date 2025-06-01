@@ -1,6 +1,6 @@
 import os
 import requests
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, render_template, send_from_directory
 from flask_cors import CORS
 from PyPDF2 import PdfReader
 import io
@@ -30,7 +30,6 @@ def analyze_pdf():
     if file.filename == '':
         return jsonify({'error': 'Nama file kosong'}), 400
     
-    # Baca PDF dari file stream langsung
     try:
         reader = PdfReader(file.stream)
     except Exception as e:
@@ -40,16 +39,21 @@ def analyze_pdf():
     for page in reader.pages:
         text += page.extract_text() or ''
 
-    # Potong jika terlalu panjang untuk API
     max_len = 1000
     chunk = text[:max_len]
 
     summary = summarize_with_huggingface(chunk)
     return jsonify({'summary': summary})
 
-@app.route('/', methods=['GET'])
+# Route untuk menampilkan halaman frontend
+@app.route('/')
 def home():
-    return "🚀 Hugging Face API PDF Summarizer is running"
+    return render_template('index.html')
+
+# Route untuk melayani file statis (js, css)
+@app.route('/static/<path:path>')
+def send_static(path):
+    return send_from_directory('static', path)
 
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 8080))
