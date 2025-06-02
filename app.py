@@ -3,12 +3,11 @@ import requests
 from flask import Flask, request, jsonify, render_template, send_from_directory, Response
 from flask_cors import CORS
 from PyPDF2 import PdfReader
-import io
 
 app = Flask(__name__)
 
-# Konfigurasi CORS: hanya izinkan dari GitHub Pages frontend Anda
-CORS(app, origins=["https://ralfybawinto.github.io"])
+# ✅ CORS config — hanya izinkan dari GitHub Pages
+CORS(app, resources={r"/analyze": {"origins": "https://ralfybawinto.github.io"}}, supports_credentials=True)
 
 def summarize_with_huggingface(text):
     api_token = os.getenv("HF_API_TOKEN")
@@ -22,11 +21,10 @@ def summarize_with_huggingface(text):
     else:
         return "Ringkasan gagal."
 
-# Tangani juga preflight (OPTIONS) untuk CORS
+# ✅ Tambahkan OPTIONS handler untuk preflight
 @app.route('/analyze', methods=['POST', 'OPTIONS'])
 def analyze_pdf():
     if request.method == 'OPTIONS':
-        # Menanggapi preflight request
         response = Response()
         response.headers['Access-Control-Allow-Origin'] = 'https://ralfybawinto.github.io'
         response.headers['Access-Control-Allow-Methods'] = 'POST, OPTIONS'
@@ -54,16 +52,17 @@ def analyze_pdf():
     chunk = text[:max_len]
 
     summary = summarize_with_huggingface(chunk)
-    return jsonify({'summary': summary})
 
-# Route untuk halaman frontend (jika lokal)
+    # ✅ Tambahkan header CORS manual ke response
+    response = jsonify({'summary': summary})
+    response.headers.add("Access-Control-Allow-Origin", "https://ralfybawinto.github.io")
+    return response
+
+# Frontend route (optional kalau hanya API)
 @app.route('/')
 def home():
-    print("CWD:", os.getcwd())
-    print("Templates folder content:", os.listdir('templates'))
     return render_template('index.html')
 
-# Untuk melayani file statis jika diperlukan
 @app.route('/static/<path:path>')
 def send_static(path):
     return send_from_directory('static', path)
