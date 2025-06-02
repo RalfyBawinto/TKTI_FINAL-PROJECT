@@ -1,13 +1,9 @@
 import os
 import requests
-from flask import Flask, request, jsonify, render_template, send_from_directory, Response
-from flask_cors import CORS
+from flask import Flask, request, jsonify, render_template, send_from_directory
 from PyPDF2 import PdfReader
 
 app = Flask(__name__)
-
-# ✅ CORS config — hanya izinkan dari GitHub Pages
-CORS(app, resources={r"/analyze": {"origins": "https://ralfybawinto.github.io"}}, supports_credentials=True)
 
 def summarize_with_huggingface(text):
     api_token = os.getenv("HF_API_TOKEN")
@@ -21,21 +17,12 @@ def summarize_with_huggingface(text):
     else:
         return "Ringkasan gagal."
 
-# ✅ Tambahkan OPTIONS handler untuk preflight
-@app.route('/analyze', methods=['POST', 'OPTIONS'])
+@app.route('/analyze', methods=['POST'])
 def analyze_pdf():
-    if request.method == 'OPTIONS':
-        response = Response()
-        response.headers['Access-Control-Allow-Origin'] = 'https://ralfybawinto.github.io'
-        response.headers['Access-Control-Allow-Methods'] = 'POST, OPTIONS'
-        response.headers['Access-Control-Allow-Headers'] = 'Content-Type'
-        return response
-
     if 'file' not in request.files:
         return jsonify({'error': 'Tidak ada file yang di-upload'}), 400
 
     file = request.files['file']
-
     if file.filename == '':
         return jsonify({'error': 'Nama file kosong'}), 400
 
@@ -50,19 +37,16 @@ def analyze_pdf():
 
     max_len = 1000
     chunk = text[:max_len]
-
     summary = summarize_with_huggingface(chunk)
 
-    # ✅ Tambahkan header CORS manual ke response
-    response = jsonify({'summary': summary})
-    response.headers.add("Access-Control-Allow-Origin", "https://ralfybawinto.github.io")
-    return response
+    return jsonify({'summary': summary})
 
-# Frontend route (optional kalau hanya API)
+# Route utama frontend
 @app.route('/')
 def home():
     return render_template('index.html')
 
+# Untuk melayani file statis seperti CSS & JS
 @app.route('/static/<path:path>')
 def send_static(path):
     return send_from_directory('static', path)
