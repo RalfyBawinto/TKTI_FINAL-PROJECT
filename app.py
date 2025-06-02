@@ -1,13 +1,14 @@
 import os
 import requests
-from flask import Flask, request, jsonify, render_template, send_from_directory
+from flask import Flask, request, jsonify, render_template, send_from_directory, Response
 from flask_cors import CORS
 from PyPDF2 import PdfReader
 import io
 
 app = Flask(__name__)
-# Izinkan hanya dari GitHub Pages
-CORS(app, origins=["https://ralfybawinto.github.io/*"])
+
+# Konfigurasi CORS: hanya izinkan dari GitHub Pages frontend Anda
+CORS(app, origins=["https://ralfybawinto.github.io"])
 
 def summarize_with_huggingface(text):
     api_token = os.getenv("HF_API_TOKEN")
@@ -21,16 +22,25 @@ def summarize_with_huggingface(text):
     else:
         return "Ringkasan gagal."
 
-@app.route('/analyze', methods=['POST'])
+# Tangani juga preflight (OPTIONS) untuk CORS
+@app.route('/analyze', methods=['POST', 'OPTIONS'])
 def analyze_pdf():
+    if request.method == 'OPTIONS':
+        # Menanggapi preflight request
+        response = Response()
+        response.headers['Access-Control-Allow-Origin'] = 'https://ralfybawinto.github.io'
+        response.headers['Access-Control-Allow-Methods'] = 'POST, OPTIONS'
+        response.headers['Access-Control-Allow-Headers'] = 'Content-Type'
+        return response
+
     if 'file' not in request.files:
         return jsonify({'error': 'Tidak ada file yang di-upload'}), 400
-    
+
     file = request.files['file']
-    
+
     if file.filename == '':
         return jsonify({'error': 'Nama file kosong'}), 400
-    
+
     try:
         reader = PdfReader(file.stream)
     except Exception as e:
@@ -46,15 +56,14 @@ def analyze_pdf():
     summary = summarize_with_huggingface(chunk)
     return jsonify({'summary': summary})
 
-# Route untuk menampilkan halaman frontend
+# Route untuk halaman frontend (jika lokal)
 @app.route('/')
 def home():
     print("CWD:", os.getcwd())
     print("Templates folder content:", os.listdir('templates'))
     return render_template('index.html')
 
-
-# Route untuk melayani file statis (js, css)
+# Untuk melayani file statis jika diperlukan
 @app.route('/static/<path:path>')
 def send_static(path):
     return send_from_directory('static', path)
