@@ -6,7 +6,8 @@ from PyPDF2 import PdfReader
 import io
 
 app = Flask(__name__)
-CORS(app)
+# Izinkan hanya dari GitHub Pages
+CORS(app, origins=["https://ralfybawinto.github.io"])
 
 def summarize_with_huggingface(text):
     api_token = os.getenv("HF_API_TOKEN")
